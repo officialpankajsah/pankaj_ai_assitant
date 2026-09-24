@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net: Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Security Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User Profile Validation
+    function isValidUserProfile(data, userId) {
+      return data.uid == userId &&
+        data.keys().hasAll(['uid', 'voiceGender', 'speakingSpeed']) &&
+        data.voiceGender in ['Male', 'Female'] &&
+        data.speakingSpeed in ['Slow', 'Normal', 'Fast'] &&
+        (!('preferredLanguage' in data) || (data.preferredLanguage is string && data.preferredLanguage.size() <= 60)) &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 150));
+    }
+
+    // Conversation Message Validation
+    function isValidConversation(data, userId) {
+      return data.userId == userId &&
+        data.keys().hasAll(['id', 'userId', 'role', 'content', 'timestamp']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.role in ['user', 'assistant', 'system'] &&
+        data.content is string && data.content.size() <= 5000 &&
+        data.timestamp is number &&
+        (!('voiceText' in data) || (data.voiceText is string && data.voiceText.size() <= 5000)) &&
+        (!('language' in data) || (data.language is string && data.language.size() <= 60));
+    }
+
+    // Memory Item Validation
+    function isValidMemory(data, userId) {
+      return data.userId == userId &&
+        data.keys().hasAll(['id', 'userId', 'type', 'key', 'value', 'timestamp']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.type in ['USER_PREFERENCE', 'ROUTINE', 'COMMAND_PATTERN', 'CONVERSATION_CONTEXT', 'USER_SETTING'] &&
+        data.key is string && data.key.size() <= 200 &&
+        data.value is string && data.value.size() <= 2000 &&
+        data.timestamp is number;
+    }
+
+    // Alarm/Reminder Validation
+    function isValidAlarm(data, userId) {
+      return data.userId == userId &&
+        data.keys().hasAll(['id', 'userId', 'type', 'title', 'enabled']) &&
+        data.id is string && data.id.size() <= 128 &&
+        data.type in ['alarm', 'reminder'] &&
+        data.title is string && data.title.size() <= 300 &&
+        data.enabled is bool &&
+        (!('timeString' in data) || (data.timeString is string && data.timeString.size() <= 100)) &&
+        (!('timestamp' in data) || (data.timestamp is number));
+    }
+
+    // Test connection doc match (for validating Firestore online connectivity)
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // User Profile Documents
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users cannot enumerate all accounts
+      allow create: if isOwner(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidUserProfile(incoming(), userId) && incoming().uid == existing().uid;
+      allow delete: if isOwner(userId);
+
+      // Subcollection: User Conversations
+      match /conversations/{conversationId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(conversationId) && isValidConversation(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(conversationId) && isValidConversation(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: User Memories
+      match /memories/{memoryId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(memoryId) && isValidMemory(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Subcollection: User Alarms & Reminders
+      match /alarms/{alarmId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(alarmId) && isValidAlarm(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(alarmId) && isValidAlarm(incoming(), userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

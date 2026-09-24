@@ -1,0 +1,10 @@
+{
+  "name": "Pankaj Ji - Indian Voice AI Assistant",
+  "description": "Voice-first Indian AI assistant powered by Gemini with natural Hinglish, task planning, and Android phone automation.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

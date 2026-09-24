@@ -1,0 +1,178 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with assistant configuration and preferences",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the user"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User's display name or nickname"
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address"
+        },
+        "preferredLanguage": {
+          "type": "string",
+          "description": "Preferred language for Pankaj Ji assistant"
+        },
+        "voiceGender": {
+          "type": "string",
+          "enum": ["Male", "Female"],
+          "description": "Selected voice agent gender"
+        },
+        "speakingSpeed": {
+          "type": "string",
+          "enum": ["Slow", "Normal", "Fast"],
+          "description": "Selected speaking speed"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["uid", "voiceGender", "speakingSpeed"]
+    },
+    "ConversationMessage": {
+      "title": "ConversationMessage",
+      "description": "A single chat message exchanged between user and Pankaj Ji",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique message ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "assistant", "system"],
+          "description": "Sender role"
+        },
+        "content": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Text content of the message"
+        },
+        "voiceText": {
+          "type": "string",
+          "maxLength": 5000,
+          "description": "Spoken text audio version"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Message timestamp in milliseconds"
+        },
+        "language": {
+          "type": "string",
+          "description": "Detected or configured language"
+        }
+      },
+      "required": ["id", "userId", "role", "content", "timestamp"]
+    },
+    "MemoryItem": {
+      "title": "MemoryItem",
+      "description": "Personalized memory item learned by Pankaj Ji",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique memory item ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["USER_PREFERENCE", "ROUTINE", "COMMAND_PATTERN", "CONVERSATION_CONTEXT", "USER_SETTING"],
+          "description": "Category of memory"
+        },
+        "key": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Memory key"
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Memory value"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Timestamp when recorded"
+        }
+      },
+      "required": ["id", "userId", "type", "key", "value", "timestamp"]
+    },
+    "AlarmReminder": {
+      "title": "AlarmReminder",
+      "description": "Scheduled alarm or task reminder for the user",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique alarm/reminder ID"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["alarm", "reminder"],
+          "description": "Type of schedule"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Title or label"
+        },
+        "timeString": {
+          "type": "string",
+          "description": "Formatted time display"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Trigger timestamp"
+        },
+        "enabled": {
+          "type": "boolean",
+          "description": "Active status"
+        }
+      },
+      "required": ["id", "userId", "type", "title", "enabled"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Collection of user profiles and voice settings"
+    },
+    "/users/{userId}/conversations/{conversationId}": {
+      "schema": "ConversationMessage",
+      "description": "Collection of user chat messages with Pankaj Ji"
+    },
+    "/users/{userId}/memories/{memoryId}": {
+      "schema": "MemoryItem",
+      "description": "Collection of on-device & synced user memory items"
+    },
+    "/users/{userId}/alarms/{alarmId}": {
+      "schema": "AlarmReminder",
+      "description": "Collection of user alarms and scheduled reminders"
+    }
+  }
+}
